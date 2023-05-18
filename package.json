@@ -1,0 +1,24 @@
+{
+  "name": "onboard-wallet",
+  "version": "0.0.1",
+  "description": "in-brower wallet",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "eip-1193": "^0.2.3",
+    "set-defaults": "^0.0.1",
+    "tsup": "^6.7.0",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "named-logs": "^0.2.2"
+  },
+  "scripts": {
+    "prepare": "set-defaults .vscode",
+    "build": "tsup src/index.ts --dts --format esm"
+  }
+}
