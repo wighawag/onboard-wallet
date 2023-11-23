@@ -1,3 +1,12 @@
+class ProviderRpcError extends Error {
+  constructor({ message, code, data }) {
+    super(message || "code " + code);
+    this.name = "ProviderRpcError";
+    this.code = code;
+    this.data = data;
+  }
+}
+
 class IFrameProvider {
   constructor(iframeURL, nodeURL) {
     // public variable
@@ -41,10 +50,17 @@ class IFrameProvider {
     if (message.type === "onboard:response") {
       const pendingRequest = this._pendingRequests[message.id];
       if (!pendingRequest) {
-        throw new Error(`no pending request with id = ${message.id}`);
+        throw new ProviderRpcError({
+          message: `no pending request with id = ${message.id}`,
+          code: 5000,
+        });
       }
       delete this._pendingRequests[message.id];
-      pendingRequest.resolve(message.result);
+      if (message.error) {
+        pendingRequest.reject(new ProviderRpcError(message.error));
+      } else {
+        pendingRequest.resolve(message.result);
+      }
     } else if (message.type === "onboard:display") {
       // we use the iframe as display
       // can also provide our own
@@ -82,7 +98,7 @@ class IFrameProvider {
 
   request(args) {
     if (!this._connected) {
-      throw { code: 4900, data: "Not connected" };
+      throw new ProviderRpcError({ code: 4900, message: "Not connected" });
     }
     const id = ++this._counter;
     const promise = new Promise((resolve, reject) => {

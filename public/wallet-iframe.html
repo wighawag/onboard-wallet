@@ -51,7 +51,11 @@
                 {
                   type: "onboard:response",
                   id: data.id,
-                  error: { code: 5000, data: err },
+                  error: {
+                    code: err.code || 5000,
+                    data: err,
+                    message: err.message || "request failed",
+                  },
                 },
                 parentURL
               );
@@ -63,7 +67,7 @@
               id: data.id,
               error: {
                 code: 4200,
-                data:
+                message:
                   "method (" + data.payload.method + ") not allowed in iframe",
               },
             },
@@ -95,7 +99,13 @@
           },
         })
           .then(async (response) => response.json())
-          .then((v) => v.result);
+          .then((v) => {
+            if (v.error) {
+              throw v.error;
+            } else {
+              return v.result;
+            }
+          });
       }
 
       function connect() {
@@ -129,7 +139,7 @@
                 {
                   type: "onboard:event",
                   event: "disconnect",
-                  args: [{ code: 4900, data: "no chainId" }], // TODO 4901 // multichain
+                  args: [{ code: 4900, message: "empty chainId" }], // TODO 4901 // multichain
                 },
                 parentURL
               );
@@ -142,7 +152,13 @@
               {
                 type: "onboard:event",
                 event: "disconnect",
-                args: [{ code: 4900, data: err }], // TODO 4901 // multichain
+                args: [
+                  {
+                    code: 4900,
+                    data: err,
+                    message: err.message || "could not fetch chainId",
+                  },
+                ], // TODO 4901 // multichain
               },
               parentURL
             );
