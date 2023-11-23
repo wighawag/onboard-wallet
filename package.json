@@ -1,24 +1,20 @@
 {
   "name": "onboard-wallet",
-  "version": "0.0.1",
   "description": "in-brower wallet",
-  "publishConfig": {
-    "access": "public"
-  },
+  "version": "0.0.1",
   "type": "module",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
   "devDependencies": {
-    "eip-1193": "^0.4.7",
     "set-defaults": "^0.0.2",
-    "tsup": "^8.0.1",
-    "typescript": "^5.3.2"
-  },
-  "dependencies": {
-    "named-logs": "^0.2.2"
+    "vite": "^5.0.0",
+    "vite-plugin-singlefile": "^0.13.5"
   },
   "scripts": {
     "prepare": "set-defaults .vscode",
-    "build": "tsup src/index.ts --dts --format esm"
+    "iframe:dev": "vite iframe",
+    "iframe:build": "vite build iframe",
+    "iframe:preview": "vite preview iframe",
+    "test:dev": "vite",
+    "test:build": "vite build",
+    "test:preview": "vite preview"
   }
 }
