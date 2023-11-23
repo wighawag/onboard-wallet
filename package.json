@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "devDependencies": {
+    "@small-tech/vite-plugin-sri": "^1.0.1",
     "set-defaults": "^0.0.2",
     "vite": "^5.0.0",
     "vite-plugin-singlefile": "^0.13.5"
