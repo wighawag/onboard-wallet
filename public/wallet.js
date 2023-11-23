@@ -1,46 +1,51 @@
 class IFrameProvider {
   constructor(iframeURL, nodeURL) {
+    // public variable
     this.nodeURL = nodeURL;
-
     this.iframe = document.createElement("iframe");
+
+    this.iframe.style.display = "none";
     this.iframe.src =
       iframeURL +
       (iframeURL.endsWith("/") ? "" : "/") +
       "wallet-iframe.html" +
       `?nodeURL=${nodeURL}`;
-    this.counter = 1;
-    this.listener = this.onWalletMessage.bind(this);
-    this.pendingRequests = {};
-    this.iframe.style.display = "none";
+    // TODO support multi-chain ?
+
+    // private variables
+    this._counter = 1;
+    this._listener = this.onWalletMessage.bind(this);
+    this._pendingRequests = {};
+    this._eventListeners = {};
+    this._connected = false;
   }
 
   start() {
-    window.addEventListener("message", this.listener);
+    window.addEventListener("message", this._listener);
   }
 
   stop() {
-    window.removeEventListener("message", this.listener);
+    window.removeEventListener("message", this._listener);
   }
 
   onWalletMessage(event) {
-    if (event.source !== this.iframe.contentWindow) {
+    if (
+      event.source !== this.iframe.contentWindow ||
+      !event.data ||
+      !event.data.type
+    ) {
       return;
     }
     const message = event.data;
 
     if (message.type === "onboard:response") {
-      console.log("onboard:response", message);
-      const acceptedMessage = message;
-      const pendingRequest = this.pendingRequests[acceptedMessage.id];
+      const pendingRequest = this._pendingRequests[message.id];
       if (!pendingRequest) {
-        console.error(message);
-        throw new Error(`no pending request with id = ${acceptedMessage.id}`);
+        throw new Error(`no pending request with id = ${message.id}`);
       }
-      delete this.pendingRequests[acceptedMessage.id];
-
-      pendingRequest.resolve(acceptedMessage.result);
+      delete this._pendingRequests[message.id];
+      pendingRequest.resolve(message.result);
     } else if (message.type === "onboard:display") {
-      console.log("onboard:display", message);
       // we use the iframe as display
       // can also provide our own
       if (message.requests.length > 0) {
@@ -48,13 +53,40 @@ class IFrameProvider {
       } else {
         iframe.style.display = "none";
       }
+    } else if (message.type === "onboard:event") {
+      if (message.event === "connect") {
+        this._connected = true;
+      } else if (message.event === "disconnect") {
+        this._connected = false;
+      }
+      this._emit(message.event, message.args);
+    } else if (message.type === "onboard:request") {
+      // TODO needed to skip its own message
+    } else if (message.type.startsWith("onboard:")) {
+      console.error(`unrecognized message type`, event);
+    }
+  }
+
+  _emit(event, args) {
+    console.log(
+      `_emit(${event}${
+        args ? `,` + args.map((v) => JSON.stringify(v)).join(",") : ""
+      })`
+    );
+    if (this._eventListeners[event]) {
+      for (const listener of this._eventListeners[event]) {
+        listener(...args);
+      }
     }
   }
 
   request(args) {
-    const id = ++this.counter;
+    if (!this._connected) {
+      throw { code: 4900, data: "Not connected" };
+    }
+    const id = ++this._counter;
     const promise = new Promise((resolve, reject) => {
-      this.pendingRequests[id] = {
+      this._pendingRequests[id] = {
         resolve,
         reject,
       };
@@ -63,7 +95,7 @@ class IFrameProvider {
         request: args,
         id,
       };
-      this.iframe.contentWindow.postMessage(message);
+      this.iframe.contentWindow.postMessage(message, this.iframe.src);
     });
     return promise;
   }
@@ -77,6 +109,9 @@ class IFrameProvider {
   // on(eventName: "chainChanged", listener: Listener<EIP1193ChainId>): this;
   // on(eventName: "connect", listener: Listener<EIP1193ConnectInfoMessage>): this;
   on(eventName, listener) {
+    const list = (this._eventListeners[eventName] =
+      this._eventListeners[eventName] || []);
+    list.push(listener);
     return this;
   }
   // removeListener(
@@ -100,6 +135,13 @@ class IFrameProvider {
   //   listener: Listener<EIP1193ConnectInfoMessage>
   // ): this;
   removeListener(eventName, listener) {
+    const list = this._eventListeners[eventName];
+    if (list) {
+      const index = list.indexOf(listener);
+      if (index >= 0) {
+        list.splice(index, 1);
+      }
+    }
     return this;
   }
 }

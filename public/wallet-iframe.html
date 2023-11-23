@@ -8,145 +8,145 @@
 
   <body>
     <script>
-      const nodeURL = new URL(location.href).searchParams.get("nodeURL");
-      console.log({ nodeURL });
-      //   console.log(location);
+      window.onboardIFrame = true;
+      let counter = 1;
+      let connected = false;
+      const url = new URL(location.href);
+      const searchParams = url.searchParams;
+      const nodeURL = searchParams.get("nodeURL");
+      const parentURL = searchParams.get("parentURL");
 
-      let firstUrl = null;
-      let source = null;
+      let source;
       if (window.opener) {
         throw new Error(`Do not expect to be opened as a window`);
       } else if (window.parent != window) {
         source = window.parent;
       } else {
-        console.log("closing");
-        window.close();
-      }
-      console.log("accepting request...");
-      if (source) {
-        source.postMessage("ready", "*");
+        throw new Error(`self parent`);
       }
 
-      window.addEventListener("message", receiveMessage);
+      connect();
 
       function receiveMessage(event) {
         if (event.source != source) {
           return;
         }
-        if (firstUrl) {
-          if (firstUrl != event.origin) {
-            return;
-          }
-        } else {
-          firstUrl = event.origin;
-        }
-        noMessageReceivedYet = false;
+
         const data = event.data;
-        try {
-          processMessage(data, event.source);
-        } catch (err) {
-          event.source.postMessage(
+
+        if (isMethodAllowed(data.request.method)) {
+          request(data.request)
+            .then((result) => {
+              source.postMessage(
+                {
+                  type: "onboard:response",
+                  id: data.id,
+                  result: result,
+                },
+                parentURL
+              );
+            })
+            .catch((err) => {
+              source.postMessage(
+                {
+                  type: "onboard:response",
+                  id: data.id,
+                  error: { code: 5000, data: err },
+                },
+                parentURL
+              );
+            });
+        } else {
+          source.postMessage(
             {
+              type: "onboard:response",
               id: data.id,
-              result: null,
-              error: { message: "Could not process message data" },
-              type: "notValid",
+              error: {
+                code: 4200,
+                data:
+                  "method (" + data.payload.method + ") not allowed in iframe",
+              },
             },
-            firstUrl
-          );
-          console.error(err);
-          console.error("The application has sent invalid data");
-        }
-      }
-
-      function checkMessageNotReceived() {
-        if (noMessageReceivedYet) {
-          console.error(
-            "No transaction received. Please make sure popup are not blocked."
+            parentURL
           );
         }
       }
 
-      function closeWindow() {
-        closedByCode = true;
-        window.close();
-      }
-
-      function sendAsync(url, payload, callback) {
-        const request = new XMLHttpRequest();
-        request.open("POST", url, true);
-        request.setRequestHeader("Content-Type", "application/json");
-
-        request.onreadystatechange = function () {
-          if (request.readyState === 4) {
-            let response = null;
-            let error = null;
-            try {
-              response = JSON.parse(request.responseText);
-            } catch (err) {
-              const message =
-                !!result && !!result.error && !!result.error.message
-                  ? result.error.message
-                  : "Invalid JSON RPC response: " + JSON.stringify(response);
-              error = { message: message, type: "JsonParse" };
-            }
-
-            let result = response.result;
-            if (!error && response.error) {
-              error = response.error;
-              result = undefined;
-            }
-
-            callback(error, result);
-          }
-        };
-
-        try {
-          request.send(JSON.stringify(payload));
-        } catch (e) {
-          callback({
-            message: "CONNECTION ERROR: Couldn't connect to node " + url + ".",
-            type: "noConnection",
-          });
-        }
-      }
+      // ------------------------------------------------------------------------------------------
+      // UTILITIES
+      // ------------------------------------------------------------------------------------------
 
       function isMethodAllowed(method) {
         // TODO
         return true;
       }
 
-      function processMessage(data, sourceWindow) {
-        if (isMethodAllowed(data.request.method)) {
-          sendAsync(
-            nodeURL,
-            { ...data.request, id: data.id, jsonrpc: "2.0" },
-            function (error, result) {
-              sourceWindow.postMessage(
+      function request({ method, params }) {
+        return fetch(nodeURL, {
+          method: "POST",
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: ++counter,
+            method,
+            params: params || [],
+          }),
+          headers: {
+            "content-type": "application/json",
+          },
+        })
+          .then(async (response) => response.json())
+          .then((v) => v.result);
+      }
+
+      function connect() {
+        if (connected) {
+          return;
+        }
+        request({
+          method: "eth_chainId",
+          params: [],
+        })
+          .then((chainId) => {
+            if (chainId) {
+              connected = true;
+              window.addEventListener("message", receiveMessage);
+              source.postMessage(
                 {
-                  type: "onboard:response",
-                  id: data.id,
-                  result: result,
-                  error: error,
+                  type: "onboard:event",
+                  event: "connect",
+                  args: [
+                    {
+                      chainId,
+                    },
+                  ], // TODO
                 },
-                firstUrl
+                parentURL
+              );
+            } else {
+              connected = false;
+              window.removeEventListener("message", receiveMessage);
+              source.postMessage(
+                {
+                  type: "onboard:event",
+                  event: "disconnect",
+                  args: [{ code: 4900, data: "no chainId" }], // TODO 4901 // multichain
+                },
+                parentURL
               );
             }
-          );
-        } else {
-          sourceWindow.postMessage(
-            {
-              id: data.id,
-              result: null,
-              error: {
-                message:
-                  "method (" + data.payload.method + ") not allowed in iframe",
+          })
+          .catch((err) => {
+            connected = false;
+            window.removeEventListener("message", receiveMessage);
+            source.postMessage(
+              {
+                type: "onboard:event",
+                event: "disconnect",
+                args: [{ code: 4900, data: err }], // TODO 4901 // multichain
               },
-              type: "notAllowed",
-            },
-            firstUrl
-          );
-        }
+              parentURL
+            );
+          });
       }
     </script>
   </body>
