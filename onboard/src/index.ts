@@ -38,11 +38,11 @@ export class IFrameProvider {
     this.iframe = document.createElement("iframe");
 
     this.iframe.style.display = "none";
-    // this prevent the iframe to connect to the web
-    // this.iframe.csp = "default-src 'none'; script-src-elem 'self'"; // 'sha256-s34gQGVGS7By6/uGHrqMjYAL8W9VKKa1lAX3uJY7uMw='
-    // this.iframe.csp = "default-src 'none'; script-src-elem 'none'"; // 'sha256-s4eorzlyNQ69ABapkrfmA8iTyx3EeYWzictDxoqWiWI='"; //
-    (this.iframe as any).csp =
-      "default-src 'none'; script-src-elem 'sha384-tO1emI+gMz36hg9fbXy92lErPeZhtkHY8lWsK4H33jGHnbN8hYvLbHNvx31bwra8'"; //
+    // this prevent the iframe to connect to the web + it forces the use of specific js via `script-src-elem <hash>`
+    // we need to inject the integrity resulting from wallet
+    // (this.iframe as any).csp =
+    //   "default-src 'none'; script-src-elem 'sha384-tO1emI+gMz36hg9fbXy92lErPeZhtkHY8lWsK4H33jGHnbN8hYvLbHNvx31bwra8'"; //
+    (this.iframe as any).csp = "default-src 'none'; script-src-elem *";
     this.iframe.src =
       iframeURL +
       (iframeURL.endsWith("/") ? "" : "/") +

@@ -123,6 +123,7 @@ function connect() {
         );
       } else {
         connected = false;
+        connected = false;
         window.removeEventListener("message", receiveMessage);
         source.postMessage(
           {
