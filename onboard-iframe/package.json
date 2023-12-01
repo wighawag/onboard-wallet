@@ -1,0 +1,16 @@
+{
+  "name": "onboard-iframe",
+  "version": "0.0.0",
+  "description": "Iframe for onboard-wallet",
+  "type": "module",
+  "devDependencies": {
+    "@small-tech/vite-plugin-sri": "^1.0.1",
+    "as-soon": "^0.0.4",
+    "vite": "^5.0.0"
+  },
+  "scripts": {
+    "dev": "as-soon -w src vite build",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

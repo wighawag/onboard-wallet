@@ -1,21 +1,13 @@
 {
-  "name": "onboard-wallet",
-  "description": "in-brower wallet",
-  "version": "0.0.1",
-  "type": "module",
+  "name": "onboard-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An Iframe based Wallet",
   "devDependencies": {
-    "@small-tech/vite-plugin-sri": "^1.0.1",
-    "set-defaults": "^0.0.2",
-    "vite": "^5.0.0",
-    "vite-plugin-singlefile": "^0.13.5"
+    "set-defaults": "^0.0.2"
   },
   "scripts": {
     "prepare": "set-defaults .vscode",
-    "iframe:dev": "vite iframe-project",
-    "iframe:build": "vite build iframe-project",
-    "iframe:preview": "vite preview iframe-project",
-    "test:dev": "vite",
-    "test:build": "vite build",
-    "test:preview": "vite preview"
+    "dev": "pnpm run --parallel -r dev"
   }
 }
