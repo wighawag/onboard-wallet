@@ -11,9 +11,9 @@
   },
   "scripts": {
     "prepare": "set-defaults .vscode",
-    "iframe:dev": "vite iframe",
-    "iframe:build": "vite build iframe",
-    "iframe:preview": "vite preview iframe",
+    "iframe:dev": "vite iframe-project",
+    "iframe:build": "vite build iframe-project",
+    "iframe:preview": "vite preview iframe-project",
     "test:dev": "vite",
     "test:build": "vite build",
     "test:preview": "vite preview"
