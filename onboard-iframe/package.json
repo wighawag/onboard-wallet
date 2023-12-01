@@ -6,11 +6,11 @@
   "devDependencies": {
     "@small-tech/vite-plugin-sri": "^1.0.1",
     "as-soon": "^0.0.4",
-    "vite": "^5.0.0"
+    "vite": "^4.5.0"
   },
   "scripts": {
-    "dev": "as-soon -w src vite build",
-    "build": "vite build",
+    "dev": "as-soon -w src pnpm run build",
+    "build": "vite build && node postprocess.js ../onboard-demo/public/iframe/",
     "preview": "vite preview"
   }
 }
