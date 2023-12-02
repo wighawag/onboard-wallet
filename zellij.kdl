@@ -1,0 +1,21 @@
+layout {
+	pane {
+		pane {}
+		pane split_direction="vertical" {
+			pane name="IFRAME" command="bash"  {
+				args "-c" "pnpm run --filter ./onboard-iframe dev; cd onboard-iframe; ${SHELL-bash}"
+			}
+			pane name="LIB" command="bash"  {
+				args "-c" "pnpm run --filter ./onboard dev; cd onboard; ${SHELL-bash}"
+			}
+			
+		}
+		pane split_direction="vertical" {
+			pane name="DEMO" command="bash"  {
+				args "-c" "pnpm run --filter ./onboard-demo dev; cd onboard-demo; ${SHELL-bash}"
+			}
+			
+		}
+	}
+
+}
