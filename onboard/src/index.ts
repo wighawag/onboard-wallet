@@ -66,7 +66,8 @@ export class IFrameProvider {
     // we need to inject the integrity resulting from wallet
     // (this.iframe as any).csp =
     //   "default-src 'none'; script-src-elem 'sha384-tO1emI+gMz36hg9fbXy92lErPeZhtkHY8lWsK4H33jGHnbN8hYvLbHNvx31bwra8'"; //
-    (this.iframe as any).csp = "default-src 'none'; script-src-elem *";
+    (this.iframe as any).csp =
+      "default-src 'none'; script-src-elem *; style-src 'unsafe-inline';"; // TODO style hash too (for popup, same for script)
     this.iframe.src =
       iframeURL + (iframeURL.endsWith("/") ? "" : "/") + "iframe/index.html";
     // TODO support multi-chain ?

@@ -62,10 +62,9 @@ function receiveMessageFromPopup(data) {
   if (data.id === currentPopup.id) {
     if (data.type === "popup:ready") {
       console.log(`currentPopup`, currentPopup);
-      currentPopup.window.postMessage(
-        { forwarded: currentPopup.data },
-        currentPopup.url
-      );
+      console.log(`replygin...`);
+      currentPopup.window.postMessage({ forwarded: currentPopup.data });
+      console.log(`replygin...`);
     } else if (data.type === "popup:confirm") {
       receiveMessageFromApp(data.forwarded, true);
     } else if (data.type === "popup:reject") {
@@ -81,6 +80,8 @@ function receiveMessageFromPopup(data) {
         parentURL
       );
     }
+  } else {
+    console.log(`currentPopup`, currentPopup);
   }
 }
 
@@ -95,13 +96,45 @@ function receiveMessageFromApp(data, confirmed) {
       const popupID = ++popupCounter;
       const popupPathname = "/popup/index.html";
       const myLocation = location.href.toString();
-      const url = `${location.protocol}//${location.host}${popupPathname}?parentURL=${myLocation}&id=${popupID}`;
-      console.log({ url });
+      // const url = `${location.protocol}//${location.host}${popupPathname}?parentURL=${myLocation}&id=${popupID}`;
+      // fetch(`${location.protocol}//${location.host}${popupPathname}`).then(v => v.text()).then(content => {
+
+      // })
+      // console.log({ url });
       const popup = window.open(
-        url,
+        "",
         "Confirmation",
         "resizable,height=260,width=370"
       );
+      popup.document.head.innerHTML = `
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OnBoard Wallet Popup</title>
+<meta name="parentURL" content="${myLocation}" >
+<meta name="popupID" content="${popupID}" >
+`;
+
+      popup.document.body.innerHTML = `
+<div id="Transaction" style="display: none">
+  <p>from:</p>
+  <p>to:</p>
+  <p>value:</p>
+  <p>data:</p>
+  <button id="Transaction:confirm">OK</button>
+  <button id="Transaction:reject">REJECT</button>
+</div>
+<div id="TextMessage" style="display: none">
+  <p>message:</p>
+</div>
+<div id="EIP712Message" style="display: none">
+  <p>TODO EIP712</p>
+</div>
+
+`;
+      //<script type="module" crossorigin="" src="/popup/assets/index-3ad4cc96.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
+      const scriptElement = popup.document.createElement("script");
+      scriptElement.src = "/popup/assets/index-03f02f26.js";
+      popup.document.body.appendChild(scriptElement);
       currentPopup = { window: popup, id: popupID, data, url };
     } else {
       request(data.request)

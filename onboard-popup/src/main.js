@@ -8,8 +8,13 @@ if (!source) {
 const url = new URL(location.href);
 console.log(`popup ${url}`);
 const searchParams = url.searchParams;
-const parentURL = searchParams.get("parentURL");
-const idStr = searchParams.get("id");
+
+const parentURL =
+  searchParams.get("parentURL") ||
+  document.querySelector('meta[name="parentURL"]').content;
+const idStr =
+  searchParams.get("id") ||
+  document.querySelector('meta[name="popupID"]').content;
 const id = parseInt(idStr);
 
 console.log({ id, parentURL });
