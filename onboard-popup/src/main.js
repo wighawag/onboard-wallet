@@ -6,33 +6,46 @@ if (!source) {
   throw new Error(`expected to be open as popup`);
 }
 const url = new URL(location.href);
+console.log(`popup ${url}`);
 const searchParams = url.searchParams;
 const parentURL = searchParams.get("parentURL");
-// const type = searchParams.get("type");
-const id = searchParams.get("id");
+const idStr = searchParams.get("id");
+const id = parseInt(idStr);
 
+console.log({ id, parentURL });
 window.addEventListener("message", receiveMessage);
+source.postMessage({ type: "popup:ready", id }, parentURL);
 // ------------------------------------------------------------------------------------------------
 
 function receiveMessage(event) {
+  if (
+    event.data.target &&
+    (event.data.target === "metamask-inpage" ||
+      event.data.target === "metamask-contentscript")
+  ) {
+    // skip to filter out metamask message
+    return;
+  }
+  console.log(`popup`, event);
+
   if (event.source != source) {
     return;
   }
 
-  const data = event.data;
+  const forwarded = event.data.forwarded;
 
-  const request = data.request;
+  const request = forwarded.request;
 
   let groupElement;
   let confirmButton;
   let rejectButton;
 
-  if (method === "eth_signTransaction") {
+  if (request.method === "eth_signTransaction") {
     groupElement = document.getElementById("Transaction");
     confirmButton = document.getElementById("Transaction:confirm");
     rejectButton = document.getElementById("Transaction:reject");
 
-    const tx = data.request.params[0];
+    const tx = request.params[0];
     for (const key of Object.keys(tx)) {
       const value = tx[key];
       const element = document.getElementById(`Transaction:${key}`);
@@ -55,12 +68,9 @@ function receiveMessage(event) {
   function confirm() {
     source.postMessage(
       {
-        type: "popup:response",
+        type: "popup:confirm",
         id,
-        response: {
-          type: "confirm",
-          request,
-        },
+        forwarded,
       },
       parentURL
     );
@@ -70,11 +80,8 @@ function receiveMessage(event) {
   function reject() {
     source.postMessage(
       {
-        type: "popup:response",
+        type: "popup:reject",
         id,
-        response: {
-          type: "reject",
-        },
       },
       parentURL
     );

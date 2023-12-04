@@ -31,39 +31,105 @@ function isMethodAllowed(method) {
   return methodsAllowed.includes(method);
 }
 
+const methodsRequiringConfirmation = ["eth_signTransaction"];
+function doesMethodRequireConfirmation(method) {
+  return methodsRequiringConfirmation.includes(method);
+}
+
+let popupCounter = 1;
+let currentPopup;
+
 function receiveMessage(event) {
-  if (event.source != source) {
+  if (
+    event.data.target &&
+    (event.data.target === "metamask-inpage" ||
+      event.data.target === "metamask-contentscript")
+  ) {
+    // skip to filter out metamask message
     return;
   }
+  console.log(`iframe`, event);
+  if (event.source === source) {
+    console.log(`receiveMessageFromApp`);
+    return receiveMessageFromApp(event.data);
+  } else if (currentPopup && event.source == currentPopup.window) {
+    console.log(`receiveMessageFromPopup`, event.data);
+    return receiveMessageFromPopup(event.data);
+  }
+}
 
-  const data = event.data;
+function receiveMessageFromPopup(data) {
+  if (data.id === currentPopup.id) {
+    if (data.type === "popup:ready") {
+      console.log(`currentPopup`, currentPopup);
+      currentPopup.window.postMessage(
+        { forwarded: currentPopup.data },
+        currentPopup.url
+      );
+    } else if (data.type === "popup:confirm") {
+      receiveMessageFromApp(data.forwarded, true);
+    } else if (data.type === "popup:reject") {
+      source.postMessage(
+        {
+          type: "onboard:response",
+          id: currentPopup.data.id,
+          error: {
+            code: 1,
+            message: "rejected by user",
+          },
+        },
+        parentURL
+      );
+    }
+  }
+}
 
+function receiveMessageFromApp(data, confirmed) {
   if (isMethodAllowed(data.request.method)) {
-    request(data.request)
-      .then((result) => {
-        source.postMessage(
-          {
-            type: "onboard:response",
-            id: data.id,
-            result: result,
-          },
-          parentURL
-        );
-      })
-      .catch((err) => {
-        source.postMessage(
-          {
-            type: "onboard:response",
-            id: data.id,
-            error: {
-              code: err.code || 5000,
-              data: err,
-              message: err.message || "request failed",
+    if (!confirmed && doesMethodRequireConfirmation(data.request.method)) {
+      if (currentPopup) {
+        console.log("closing current popup", currentPopup.windown);
+        // TODO throw error or push to queue ?
+        currentPopup.window.close();
+      }
+      const popupID = ++popupCounter;
+      const popupPathname = "/popup/index.html";
+      const myLocation = location.href.toString();
+      const url = `${location.protocol}//${location.host}${popupPathname}?parentURL=${myLocation}&id=${popupID}`;
+      console.log({ url });
+      const popup = window.open(
+        url,
+        "Confirmation",
+        "resizable,height=260,width=370"
+      );
+      currentPopup = { window: popup, id: popupID, data, url };
+    } else {
+      request(data.request)
+        .then((result) => {
+          source.postMessage(
+            {
+              type: "onboard:response",
+              id: data.id,
+              result: result,
             },
-          },
-          parentURL
-        );
-      });
+            parentURL
+          );
+        })
+        .catch((err) => {
+          source.postMessage(
+            {
+              type: "onboard:response",
+              id: data.id,
+              error: {
+                code: err.code || 5000,
+                data: err,
+                message: err.message || "request failed",
+              },
+            },
+            parentURL
+          );
+        });
+    }
   } else {
     source.postMessage(
       {
@@ -101,11 +167,6 @@ function convert(obj) {
 
 const methods = {
   async eth_signTransaction(params) {
-    window.open(
-      "/popup/index.html",
-      "Transaction",
-      "resizable,height=260,width=370"
-    );
     const converted = convert(params[0]);
     const tx = new Transaction(converted);
     const signedTx = tx.sign(privateKey);
