@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src-elem 'sha256-Xg7bLg7nCkwsws9ySP8k10UMCY3EssmxLKJ+HtsJ4H4='"> -->
+    <title>OnBoard Wallet Popup</title>
+  </head>
+
+  <body>
+    <script type="module" src="./src/main.js"></script>
+    <div id="eth_signTransaction" style="display: none">
+      <p>from:</p>
+      <p>to:</p>
+      <p>value:</p>
+      <p>data:</p>
+      <button id="eth_signTransaction_confirm">OK</button>
+      <button id="eth_signTransaction_reject">REJECT</button>
+    </div>
+    <div id="personal_sign" style="display: none">
+      <p>message:</p>
+    </div>
+    <div id="EIP712Message" style="display: none">
+      <p>TODO EIP712</p>
+    </div>
+  </body>
+</html>

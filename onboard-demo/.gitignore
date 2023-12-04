@@ -5,3 +5,4 @@ dist/
 !.vscode/*.default
 
 public/iframe/
+public/popup/

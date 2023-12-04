@@ -1,0 +1,19 @@
+{
+  "name": "onboard-popup",
+  "version": "0.0.0",
+  "description": "Popup for onboard-wallet",
+  "type": "module",
+  "devDependencies": {
+    "@small-tech/vite-plugin-sri": "^1.0.1",
+    "as-soon": "^0.0.4",
+    "vite": "^4.5.0"
+  },
+  "scripts": {
+    "dev": "as-soon -w ./src pnpm run build",
+    "build": "vite build && node postprocess.js ../onboard-demo/public/popup/",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "micro-eth-signer": "^0.6.4"
+  }
+}

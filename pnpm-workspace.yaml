@@ -1,4 +1,5 @@
 packages:
   - "onboard-demo"
   - "onboard-iframe"
+  - "onboard-popup"
   - "onboard"

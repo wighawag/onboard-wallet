@@ -101,6 +101,11 @@ function convert(obj) {
 
 const methods = {
   async eth_signTransaction(params) {
+    window.open(
+      "/popup/index.html",
+      "Transaction",
+      "resizable,height=260,width=370"
+    );
     const converted = convert(params[0]);
     const tx = new Transaction(converted);
     const signedTx = tx.sign(privateKey);

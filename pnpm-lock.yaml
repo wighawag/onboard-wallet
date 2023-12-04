@@ -57,6 +57,22 @@ importers:
         specifier: ^4.5.0
         version: 4.5.0
 
+  onboard-popup:
+    dependencies:
+      micro-eth-signer:
+        specifier: ^0.6.4
+        version: 0.6.4
+    devDependencies:
+      '@small-tech/vite-plugin-sri':
+        specifier: ^1.0.1
+        version: 1.0.1
+      as-soon:
+        specifier: ^0.0.4
+        version: 0.0.4
+      vite:
+        specifier: ^4.5.0
+        version: 4.5.0
+
 packages:
 
   /@esbuild/android-arm64@0.18.20:
