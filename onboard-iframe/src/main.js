@@ -1,9 +1,11 @@
+import { Address, Transaction } from "micro-eth-signer";
+
+// ------------------------------------------------------------------------------------------------
+// INITIALIZATION
+// ------------------------------------------------------------------------------------------------
 window.onboardIFrame = true;
-let counter = 1;
-let connected = false;
 const url = new URL(location.href);
 const searchParams = url.searchParams;
-const nodeURL = searchParams.get("nodeURL");
 const parentURL = searchParams.get("parentURL");
 
 let source;
@@ -15,7 +17,19 @@ if (window.opener) {
   throw new Error(`self parent`);
 }
 
-connect();
+const privateKey =
+  "6b911fd37cdf5c81d4c0adb1ab7fa822ed253ab0ad9aa18d77257c88b29b718e";
+window.addEventListener("message", receiveMessage);
+// ------------------------------------------------------------------------------------------------
+
+const methodsAllowed = [
+  "eth_signTransaction",
+  "eth_accounts",
+  "eth_requestAccounts",
+];
+function isMethodAllowed(method) {
+  return methodsAllowed.includes(method);
+}
 
 function receiveMessage(event) {
   if (event.source != source) {
@@ -57,7 +71,7 @@ function receiveMessage(event) {
         id: data.id,
         error: {
           code: 4200,
-          message: "method (" + data.payload.method + ") not allowed in iframe",
+          message: "method (" + data.request.method + ") not allowed in iframe",
         },
       },
       parentURL
@@ -65,92 +79,53 @@ function receiveMessage(event) {
   }
 }
 
-// ------------------------------------------------------------------------------------------
-// UTILITIES
-// ------------------------------------------------------------------------------------------
-
-function isMethodAllowed(method) {
-  // TODO
-  return true;
-}
-
-function request({ method, params }) {
-  return fetch(nodeURL, {
-    method: "POST",
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: ++counter,
-      method,
-      params: params || [],
-    }),
-    headers: {
-      "content-type": "application/json",
-    },
-  })
-    .then(async (response) => response.json())
-    .then((v) => {
-      if (v.error) {
-        throw v.error;
-      } else {
-        return v.result;
-      }
-    });
-}
-
-function connect() {
-  if (connected) {
-    return;
+const bnList = [
+  "maxFeePerGas",
+  "maxPriorityFeePerGas",
+  "value",
+  "gas",
+  "gasLimit",
+];
+const numList = ["nonce", "chainId"];
+function convert(obj) {
+  const keys = Object.keys(obj);
+  for (const key of keys) {
+    if (bnList.includes(key)) {
+      obj[key] = BigInt(obj[key]);
+    } else if (numList.includes(key)) {
+      obj[key] = Number(obj[key]);
+    }
   }
-  request({
-    method: "eth_chainId",
-    params: [],
-  })
-    .then((chainId) => {
-      if (chainId) {
-        connected = true;
-        window.addEventListener("message", receiveMessage);
-        source.postMessage(
-          {
-            type: "onboard:event",
-            event: "connect",
-            args: [
-              {
-                chainId,
-              },
-            ], // TODO
-          },
-          parentURL
-        );
-      } else {
-        connected = false;
-        connected = false;
-        window.removeEventListener("message", receiveMessage);
-        source.postMessage(
-          {
-            type: "onboard:event",
-            event: "disconnect",
-            args: [{ code: 4900, message: "empty chainId" }], // TODO 4901 // multichain
-          },
-          parentURL
-        );
-      }
-    })
-    .catch((err) => {
-      connected = false;
-      window.removeEventListener("message", receiveMessage);
-      source.postMessage(
-        {
-          type: "onboard:event",
-          event: "disconnect",
-          args: [
-            {
-              code: 4900,
-              data: err,
-              message: err.message || "could not fetch chainId",
-            },
-          ], // TODO 4901 // multichain
-        },
-        parentURL
-      );
-    });
+  return obj;
+}
+
+const methods = {
+  async eth_signTransaction(params) {
+    const converted = convert(params[0]);
+    const tx = new Transaction(converted);
+    const signedTx = tx.sign(privateKey);
+    const { hash, hex } = signedTx;
+    return hex;
+  },
+  async eth_accounts() {
+    return [Address.fromPrivateKey(privateKey)];
+  },
+  async eth_requestAccounts() {
+    // TODO authorization ?
+    return [Address.fromPrivateKey(privateKey)];
+  },
+};
+
+/**
+ * @param {Object} args
+ * @param {string} args.method
+ * @param {any[]} args.params
+ * @returns {Promise<any>}
+ */
+async function request(args) {
+  const func = methods[args.method];
+  if (func) {
+    return func(args.params);
+  }
+  throw new Error(`method "${args.method}" is not implemented`);
 }

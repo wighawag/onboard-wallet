@@ -1,3 +1,21 @@
+import { JSONRPCHTTPProvider } from "eip-1193-jsonrpc-provider";
+import {
+  EIP1193Provider,
+  EIP1193ProviderWithoutEvents,
+  EIP1193QUANTITY,
+  EIP1193TransactionData,
+  EIP1193TransactionDataOfType2,
+} from "eip-1193";
+
+const PRIVATE_METHODS: string[] = [
+  "eth_signTransaction",
+  "eth_accounts",
+  "eth_requestAccounts",
+];
+export function isPrivateMethod(method: string) {
+  return PRIVATE_METHODS.indexOf(method) > -1;
+}
+
 export class ProviderRpcError extends Error {
   public readonly code: number;
   public readonly data?: any;
@@ -23,19 +41,25 @@ type PendingRequest<T = any, E = any> = {
 };
 
 export class IFrameProvider {
-  public readonly nodeURL: string;
   public readonly iframe: HTMLIFrameElement;
+  public readonly externalProvider:
+    | EIP1193ProviderWithoutEvents
+    | EIP1193Provider;
 
   private _counter: number;
   private _listener: (event: MessageEvent) => void;
   private _pendingRequests: { [id: string]: PendingRequest };
   private _eventListeners: { [eventName: string]: ((args?: any[]) => void)[] };
-  private _connected: boolean;
+  private _connectedChainId: string | undefined;
 
-  constructor(iframeURL: string, nodeURL: string) {
+  constructor(iframeURL: string, providerOrURL: string | EIP1193Provider) {
     // public variable
-    this.nodeURL = nodeURL;
+
     this.iframe = document.createElement("iframe");
+    this.externalProvider =
+      typeof providerOrURL === "string"
+        ? new JSONRPCHTTPProvider(providerOrURL)
+        : providerOrURL;
 
     this.iframe.style.display = "none";
     // this prevent the iframe to connect to the web + it forces the use of specific js via `script-src-elem <hash>`
@@ -44,10 +68,7 @@ export class IFrameProvider {
     //   "default-src 'none'; script-src-elem 'sha384-tO1emI+gMz36hg9fbXy92lErPeZhtkHY8lWsK4H33jGHnbN8hYvLbHNvx31bwra8'"; //
     (this.iframe as any).csp = "default-src 'none'; script-src-elem *";
     this.iframe.src =
-      iframeURL +
-      (iframeURL.endsWith("/") ? "" : "/") +
-      "iframe/index.html" +
-      `?nodeURL=${nodeURL}`;
+      iframeURL + (iframeURL.endsWith("/") ? "" : "/") + "iframe/index.html";
     // TODO support multi-chain ?
 
     fetch("/iframe/assets/index-zoEffCdw.js")
@@ -78,14 +99,64 @@ export class IFrameProvider {
     this._listener = this.onWalletMessage.bind(this);
     this._pendingRequests = {};
     this._eventListeners = {};
-    this._connected = false;
+    this._connectedChainId = undefined;
   }
 
   start() {
-    window.addEventListener("message", this._listener);
+    this.externalProvider
+      .request({
+        method: "eth_chainId",
+        params: [],
+      })
+      .then((chainId) => {
+        if (typeof chainId === "string") {
+          this._connectedChainId = chainId;
+          this._emit("connect", [
+            {
+              chainId,
+            },
+          ]);
+
+          // we pass through the event
+          // expect connect and discconect
+          // TODO catch them too and handle them
+          if ("on" in this.externalProvider) {
+            for (const event of [
+              "accountsChanged",
+              "chainChanged",
+              "message" /*'connect', 'disconnect' */,
+            ]) {
+              this.externalProvider.on(
+                event as any,
+                this._emit.bind(this, event)
+              );
+            }
+          }
+
+          window.addEventListener("message", this._listener);
+        } else {
+          console.error(`empty chainId`);
+          window.removeEventListener("message", this._listener);
+          this._connectedChainId = undefined;
+          this._emit("disconnect", [{ code: 4900, message: "empty chainId" }]);
+        }
+      })
+      .catch((err) => {
+        console.error(`could not fetch chainId`);
+        window.removeEventListener("message", this._listener);
+        this._connectedChainId = undefined;
+        this._emit("disconnect", [
+          {
+            code: 4900,
+            data: err,
+            message: err.message || "could not fetch chainId",
+          },
+        ]);
+      });
   }
 
   stop() {
+    this._connectedChainId = undefined;
     window.removeEventListener("message", this._listener);
   }
 
@@ -122,11 +193,6 @@ export class IFrameProvider {
         this.iframe.style.display = "none";
       }
     } else if (message.type === "onboard:event") {
-      if (message.event === "connect") {
-        this._connected = true;
-      } else if (message.event === "disconnect") {
-        this._connected = false;
-      }
       this._emit(message.event, message.args);
     } else if (message.type === "onboard:request") {
       // TODO needed to skip its own message
@@ -148,9 +214,12 @@ export class IFrameProvider {
     }
   }
 
-  request(args: any[]) {
-    if (!this._connected) {
-      throw new ProviderRpcError({ code: 4900, message: "Not connected" });
+  async iframeRequest(args: { method: string; params?: any[] }): Promise<any> {
+    if (!this._connectedChainId) {
+      throw new ProviderRpcError({
+        code: 4900,
+        message: "Not connected",
+      });
     }
     const id = ++this._counter;
     const promise = new Promise((resolve, reject) => {
@@ -166,6 +235,56 @@ export class IFrameProvider {
       (this.iframe as any).contentWindow.postMessage(message, this.iframe.src);
     });
     return promise;
+  }
+
+  async request(args: { method: string; params?: any[] }): Promise<any> {
+    if (!this._connectedChainId) {
+      throw new Error(`not connected to any chain`);
+    }
+    const method = args.method;
+    if (!isPrivateMethod(method)) {
+      if (method === "eth_sendTransaction") {
+        if (!args.params || !args.params[0]) {
+          throw new Error(`no params provided to eth_sendTransaction`);
+        }
+        const txDataGiven = args
+          .params[0] as Partial<EIP1193TransactionDataOfType2>;
+        if (!txDataGiven.from) {
+          throw new Error(`you need to specify from`);
+        }
+
+        const nonce = "0x0";
+        const maxFeePerGas = "0x0";
+        const maxPriorityFeePerGas = "0x0";
+
+        const txData: EIP1193TransactionDataOfType2 & {
+          nonce: EIP1193QUANTITY;
+          maxFeePerGas: EIP1193QUANTITY;
+          maxPriorityFeePerGas: EIP1193QUANTITY;
+        } = {
+          type: "0x2",
+          chainId: this._connectedChainId as `0x${string}`,
+          from: txDataGiven.from,
+          to: txDataGiven.to,
+          nonce,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          value: txDataGiven.value || "0x0",
+        };
+        const txHex = await this.iframeRequest({
+          method: "eth_signTransaction",
+          params: [txData],
+        });
+        return this.externalProvider.request({
+          method: "eth_sendRawTransaction",
+          params: [txHex],
+        });
+      } else {
+        return this.externalProvider.request(args);
+      }
+    }
+
+    return this.iframeRequest(args);
   }
 
   // on(eventName: "message", listener: Listener<EIP1193Message>): this;
@@ -214,15 +333,22 @@ export class IFrameProvider {
   }
 }
 
-export function init(nodeURL: string, userOptions: any) {
+export type UserOptions = {
+  windowEthereum?: boolean;
+};
+
+export function init(
+  providerOrURL: string | EIP1193Provider,
+  userOptions?: UserOptions
+) {
   const options = {
     url: "./",
     addToDocument: "append",
     style: { zIndex: "9999" },
-    ...userOptions,
+    ...(userOptions || {}),
   };
 
-  const provider = new IFrameProvider(options.url, nodeURL);
+  const provider = new IFrameProvider(options.url, providerOrURL);
 
   if (typeof options.addToDocument === "string") {
     if (options.addToDocument === "prepend") {
@@ -234,7 +360,7 @@ export function init(nodeURL: string, userOptions: any) {
 
   provider.start();
 
-  if (options.ethereum) {
+  if (options.windowEthereum) {
     (window as any).ethereum = provider;
   }
   return provider;

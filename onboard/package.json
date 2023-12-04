@@ -7,6 +7,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "devDependencies": {
+    "eip-1193": "^0.4.7",
     "prettier": "^3.1.0",
     "tsup": "^8.0.1",
     "typescript": "^5.3.2"
@@ -17,5 +18,8 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "eip-1193-jsonrpc-provider": "^0.3.0"
   }
 }

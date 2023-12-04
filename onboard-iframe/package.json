@@ -12,5 +12,8 @@
     "dev": "as-soon -w ./src pnpm run build",
     "build": "vite build && node postprocess.js ../onboard-demo/public/iframe/",
     "preview": "vite preview"
+  },
+  "dependencies": {
+    "micro-eth-signer": "^0.6.4"
   }
 }
