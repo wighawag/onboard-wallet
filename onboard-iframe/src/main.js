@@ -39,6 +39,89 @@ function doesMethodRequireConfirmation(method) {
 let popupCounter = 1;
 let currentPopup;
 
+function showPopup(popupInfo, force) {
+  // const popup = window.open(
+  //   popupInfo.url,
+  //   "Confirmation",
+  //   "popup,resizable,height=260,width=370"
+  // );
+
+  const popup =
+    !force && navigator.userAgent.indexOf("Firefox") > -1
+      ? null
+      : window.open("", "Confirmation", "resizable,height=260,width=370");
+  if (popup) {
+    const hostURL = `${url.protocol}//${url.host}`;
+    console.log({ hostURL, url: `${url}` });
+    try {
+      popup.document.head.innerHTML = `
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OnBoard Wallet Popup</title>
+  <meta name="parentURL" content="${url}" >
+  <meta name="popupID" content="${popupInfo.id}" >
+  `;
+
+      popup.document.body.innerHTML = `
+  <div id="Transaction" style="display: none">
+    <p>from:</p>
+    <p>to:</p>
+    <p>value:</p>
+    <p>data:</p>
+    <button id="Transaction:confirm">OK</button>
+    <button id="Transaction:reject">REJECT</button>
+  </div>
+  <div id="TextMessage" style="display: none">
+    <p>message:</p>
+  </div>
+  <div id="EIP712Message" style="display: none">
+    <p>TODO EIP712</p>
+  </div>
+  `;
+      //<script type="module" crossorigin="" src="/popup/assets/index-3ad4cc96.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
+      const scriptElement = popup.document.createElement("script");
+      scriptElement.src = `${hostURL}/popup/assets/index-03f02f26.js`;
+      popup.document.body.appendChild(scriptElement);
+    } catch (err) {
+      console.error(`could not create popup content`, err);
+    }
+  } else {
+    console.error(`could not open blank popup`);
+  }
+
+  // TODO : !popup || popup.closed || typeof popup.closed == 'undefined'
+  if (!popup) {
+    source.postMessage(
+      {
+        type: "onboard:display",
+        requests: [popupInfo.data],
+      },
+      parentURL
+    );
+  } else {
+    source.postMessage(
+      {
+        type: "onboard:display",
+        requests: [],
+      },
+      parentURL
+    );
+
+    popupInfo.window = popup;
+    popup.focus();
+  }
+}
+
+function onConfirmButton(event) {
+  if (currentPopup && !currentPopup.window) {
+    showPopup(currentPopup, true);
+  }
+}
+
+document
+  .getElementById("confirm-via-popup-button")
+  .addEventListener("click", onConfirmButton);
+
 function receiveMessage(event) {
   if (
     event.data.target &&
@@ -96,46 +179,14 @@ function receiveMessageFromApp(data, confirmed) {
       const popupID = ++popupCounter;
       const popupPathname = "/popup/index.html";
       const myLocation = location.href.toString();
-      // const url = `${location.protocol}//${location.host}${popupPathname}?parentURL=${myLocation}&id=${popupID}`;
+      const url = `${location.protocol}//${location.host}${popupPathname}?parentURL=${myLocation}&id=${popupID}`;
       // fetch(`${location.protocol}//${location.host}${popupPathname}`).then(v => v.text()).then(content => {
 
       // })
-      // console.log({ url });
-      const popup = window.open(
-        "",
-        "Confirmation",
-        "resizable,height=260,width=370"
-      );
-      popup.document.head.innerHTML = `
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OnBoard Wallet Popup</title>
-<meta name="parentURL" content="${myLocation}" >
-<meta name="popupID" content="${popupID}" >
-`;
+      console.log({ url });
+      currentPopup = { id: popupID, data, url };
 
-      popup.document.body.innerHTML = `
-<div id="Transaction" style="display: none">
-  <p>from:</p>
-  <p>to:</p>
-  <p>value:</p>
-  <p>data:</p>
-  <button id="Transaction:confirm">OK</button>
-  <button id="Transaction:reject">REJECT</button>
-</div>
-<div id="TextMessage" style="display: none">
-  <p>message:</p>
-</div>
-<div id="EIP712Message" style="display: none">
-  <p>TODO EIP712</p>
-</div>
-
-`;
-      //<script type="module" crossorigin="" src="/popup/assets/index-3ad4cc96.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
-      const scriptElement = popup.document.createElement("script");
-      scriptElement.src = "/popup/assets/index-03f02f26.js";
-      popup.document.body.appendChild(scriptElement);
-      currentPopup = { window: popup, id: popupID, data, url };
+      showPopup(currentPopup);
     } else {
       request(data.request)
         .then((result) => {

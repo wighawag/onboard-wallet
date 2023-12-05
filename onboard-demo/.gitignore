@@ -6,3 +6,5 @@ dist/
 
 public/iframe/
 public/popup/
+
+.env*.local
