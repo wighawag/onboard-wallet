@@ -18,6 +18,18 @@ const idStr =
 const id = parseInt(idStr);
 
 console.log({ id, parentURL });
+let closed;
+window.addEventListener("beforeunload", function (e) {
+  if (!closed) {
+    source.postMessage(
+      {
+        type: "popup:reject",
+        id,
+      },
+      parentURL
+    );
+  }
+});
 window.addEventListener("message", receiveMessage);
 source.postMessage({ type: "popup:ready", id }, parentURL);
 // ------------------------------------------------------------------------------------------------
@@ -65,6 +77,7 @@ function receiveMessage(event) {
   rejectButton.addEventListener("click", reject);
 
   function close() {
+    closed = true;
     confirmButton.removeEventListener("click", confirm);
     rejectButton.removeEventListener("click", reject);
     window.close();

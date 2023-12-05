@@ -49,7 +49,11 @@ function showPopup(popupInfo, force) {
   const popup =
     !force && navigator.userAgent.indexOf("Firefox") > -1
       ? null
-      : window.open("", "Confirmation", "resizable,height=260,width=370");
+      : window.open(
+          "",
+          "Confirmation",
+          "popup=1,toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=300,height=300,top=100,left=10000"
+        );
   if (popup) {
     const hostURL = `${url.protocol}//${url.host}`;
     console.log({ hostURL, url: `${url}` });
@@ -78,9 +82,9 @@ function showPopup(popupInfo, force) {
     <p>TODO EIP712</p>
   </div>
   `;
-      //<script type="module" crossorigin="" src="/popup/assets/index-3ad4cc96.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
+      //<script type="module" crossorigin="" src="/popup/assets/index-66043414.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
       const scriptElement = popup.document.createElement("script");
-      scriptElement.src = `${hostURL}/popup/assets/index-03f02f26.js`;
+      scriptElement.src = `${hostURL}/popup/assets/index-66043414.js`;
       popup.document.body.appendChild(scriptElement);
     } catch (err) {
       console.error(`could not create popup content`, err);
