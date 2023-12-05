@@ -8,6 +8,8 @@ const url = new URL(location.href);
 const searchParams = url.searchParams;
 const parentURL = searchParams.get("parentURL");
 
+console.log({ parentURL });
+
 let source;
 if (window.opener) {
   throw new Error(`Do not expect to be opened as a window`);
@@ -82,9 +84,9 @@ function showPopup(popupInfo, force) {
     <p>TODO EIP712</p>
   </div>
   `;
-      //<script type="module" crossorigin="" src="/popup/assets/index-66043414.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
+      //<script type="module" crossorigin="" src="/popup/assets/index-04449268.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
       const scriptElement = popup.document.createElement("script");
-      scriptElement.src = `${hostURL}/popup/assets/index-66043414.js`;
+      scriptElement.src = `${hostURL}/popup/assets/index-04449268.js`;
       popup.document.body.appendChild(scriptElement);
     } catch (err) {
       console.error(`could not create popup content`, err);
@@ -175,6 +177,11 @@ function receiveMessageFromPopup(data) {
 function receiveMessageFromApp(data, confirmed) {
   if (isMethodAllowed(data.request.method)) {
     if (!confirmed && doesMethodRequireConfirmation(data.request.method)) {
+      console.error(
+        "iframe",
+        "method (" + data.request.method + ") require user confirmation"
+      );
+
       if (currentPopup) {
         console.log("closing current popup", currentPopup.windown);
         // TODO throw error or push to queue ?
@@ -219,6 +226,10 @@ function receiveMessageFromApp(data, confirmed) {
         });
     }
   } else {
+    console.error(
+      "iframe",
+      "method (" + data.request.method + ") not allowed in iframe"
+    );
     source.postMessage(
       {
         type: "onboard:response",

@@ -1,11 +1,7 @@
 import fs from "fs";
-const args = process.argv.slice(2);
-let folder = args[0] || "./";
-if (!folder.endsWith("/")) {
-  folder += "/";
-}
-const content = fs.readFileSync(`${folder}index.html`, "utf-8");
+import { outDir } from "./config.js";
+const content = fs.readFileSync(`${outDir}index.html`, "utf-8");
 fs.writeFileSync(
-  `${folder}index.html`,
+  `${outDir}index.html`,
   content.replace(`src="/assets/index`, `src="./assets/index`)
 );

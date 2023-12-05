@@ -52,9 +52,12 @@ export class IFrameProvider {
   private _eventListeners: { [eventName: string]: ((args?: any[]) => void)[] };
   private _connectedChainId: string | undefined;
 
-  constructor(iframeURL: string, providerOrURL: string | EIP1193Provider) {
+  constructor(iframeHOST: string, providerOrURL: string | EIP1193Provider) {
     // public variable
 
+    const iframeSRC = `${iframeHOST}${
+      iframeHOST.endsWith("/") ? "" : "/"
+    }iframe/index.html?parentURL=${location.href}`;
     this.iframe = document.createElement("iframe");
     this.externalProvider =
       typeof providerOrURL === "string"
@@ -68,8 +71,7 @@ export class IFrameProvider {
     //   "default-src 'none'; script-src-elem 'sha384-tO1emI+gMz36hg9fbXy92lErPeZhtkHY8lWsK4H33jGHnbN8hYvLbHNvx31bwra8'"; //
     (this.iframe as any).csp =
       "default-src 'none'; script-src-elem *; style-src 'unsafe-inline';"; // TODO style hash too (for popup, same for script)
-    this.iframe.src =
-      iframeURL + (iframeURL.endsWith("/") ? "" : "/") + "iframe/index.html";
+    this.iframe.src = iframeSRC;
     // TODO support multi-chain ?
 
     fetch("/iframe/assets/index-zoEffCdw.js")
@@ -339,17 +341,17 @@ export type UserOptions = {
 };
 
 export function init(
+  host: string,
   providerOrURL: string | EIP1193Provider,
   userOptions?: UserOptions
 ) {
   const options = {
-    url: "./",
     addToDocument: "append",
     style: { zIndex: "9999" },
     ...(userOptions || {}),
   };
 
-  const provider = new IFrameProvider(options.url, providerOrURL);
+  const provider = new IFrameProvider(host, providerOrURL);
 
   if (typeof options.addToDocument === "string") {
     if (options.addToDocument === "prepend") {

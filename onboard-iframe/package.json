@@ -10,8 +10,8 @@
   },
   "scripts": {
     "dev": "as-soon -w ./src pnpm run build",
-    "build": "vite build && node postprocess.js ../onboard-demo/public/iframe/",
-    "preview": "vite preview"
+    "build": "vite build && node postprocess.js",
+    "preview": "vite preview --outDir dist/"
   },
   "dependencies": {
     "micro-eth-signer": "^0.6.4"

@@ -17,7 +17,9 @@ layout {
 			pane name="DEMO" command="bash"  {
 				args "-c" "pnpm run --filter ./onboard-demo dev; cd onboard-demo; ${SHELL-bash}"
 			}
-			
+			pane name="WALLET" command="bash"  {
+				args "-c" "pnpm run --filter ./onboard-iframe preview; cd onboard-iframe; ${SHELL-bash}"
+			}
 		}
 	}
 
