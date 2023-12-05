@@ -1,4 +1,8 @@
 import { Address, Transaction } from "micro-eth-signer";
+import "./pico.classless.min.css";
+
+const POPUPJS = `index-85f46f90.js`;
+const POPUPCSS = `index-0f328561.css`;
 
 // ------------------------------------------------------------------------------------------------
 // INITIALIZATION
@@ -54,7 +58,7 @@ function showPopup(popupInfo, force) {
       : window.open(
           "",
           "Confirmation",
-          "popup=1,toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=300,height=300,top=100,left=10000"
+          "popup=1,toolbar=0,location=0,status=0,menubar=0,scrollbars=1,resizable=1,width=400,height=400,top=100,left=10000"
         );
   if (popup) {
     const hostURL = `${url.protocol}//${url.host}`;
@@ -70,12 +74,12 @@ function showPopup(popupInfo, force) {
 
       popup.document.body.innerHTML = `
   <div id="Transaction" style="display: none">
-    <p>from:</p>
-    <p>to:</p>
-    <p>value:</p>
-    <p>data:</p>
-    <button id="Transaction:confirm">OK</button>
-    <button id="Transaction:reject">REJECT</button>
+    <p id="Transaction:from">from:</p>
+    <p id="Transaction:to">to:</p>
+    <p id="Transaction:value">value:</p>
+    <p id="Transaction:data">data:</p>
+    <button id="Transaction:confirm" >OK</button>
+    <button id="Transaction:reject" class="warning">REJECT</button>
   </div>
   <div id="TextMessage" style="display: none">
     <p>message:</p>
@@ -84,10 +88,15 @@ function showPopup(popupInfo, force) {
     <p>TODO EIP712</p>
   </div>
   `;
-      //<script type="module" crossorigin="" src="/popup/assets/index-04449268.js" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
+      //<script type="module" crossorigin="" src="/popup/assets/POPUPJS" TODOintegrity="sha384-+rcthz8LFPn3sGR4FVRH6T58VOL6AMHL+OAgADreH1hPyIZGOAlK0jLluWWcYxYZ"></script>
       const scriptElement = popup.document.createElement("script");
-      scriptElement.src = `${hostURL}/popup/assets/index-04449268.js`;
+      scriptElement.src = `${hostURL}/popup/assets/${POPUPJS}`;
       popup.document.body.appendChild(scriptElement);
+
+      const styleElement = popup.document.createElement("link");
+      styleElement.rel = "stylesheet";
+      styleElement.href = `${hostURL}/popup/assets/${POPUPCSS}`;
+      popup.document.head.appendChild(styleElement);
     } catch (err) {
       console.error(`could not create popup content`, err);
     }

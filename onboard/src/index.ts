@@ -59,6 +59,11 @@ export class IFrameProvider {
       iframeHOST.endsWith("/") ? "" : "/"
     }iframe/index.html?parentURL=${location.href}`;
     this.iframe = document.createElement("iframe");
+    this.iframe.style.position = "fixed";
+    this.iframe.style.right = "0px";
+    this.iframe.style.top = "0px";
+    this.iframe.style.textAlign = "center";
+    this.iframe.style.border = "none";
     this.externalProvider =
       typeof providerOrURL === "string"
         ? new JSONRPCHTTPProvider(providerOrURL)
