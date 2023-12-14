@@ -11,6 +11,7 @@ const PRIVATE_METHODS: string[] = [
   "eth_signTransaction",
   "eth_accounts",
   "eth_requestAccounts",
+  "eth_createAccount",
 ];
 export function isPrivateMethod(method: string) {
   return PRIVATE_METHODS.indexOf(method) > -1;
@@ -74,8 +75,13 @@ export class IFrameProvider {
     // we need to inject the integrity resulting from wallet
     // (this.iframe as any).csp =
     //   "default-src 'none'; script-src-elem 'sha384-tO1emI+gMz36hg9fbXy92lErPeZhtkHY8lWsK4H33jGHnbN8hYvLbHNvx31bwra8'"; //
-    (this.iframe as any).csp =
-      "default-src 'none'; script-src-elem *; style-src 'unsafe-inline';"; // TODO style hash too (for popup, same for script)
+
+    // disabling for now as we also need header for csp it seems, cannot be served from ipfs :(
+    // (this.iframe as any).csp =
+    //   "default-src 'none'; script-src-elem *; style-src 'unsafe-inline';"; // TODO style hash too (for popup, same for script)
+
+    // This is not working yet: this.iframe.allow = "publickey-credentials-create *";
+    // see: https://github.com/w3c/webauthn/issues/1656
     this.iframe.src = iframeSRC;
     // TODO support multi-chain ?
 
