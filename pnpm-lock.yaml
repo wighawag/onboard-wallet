@@ -33,6 +33,9 @@ importers:
 
   onboard-demo:
     dependencies:
+      cbor2:
+        specifier: ^1.1.0
+        version: 1.1.0
       onboard:
         specifier: workspace:*
         version: link:../onboard
@@ -843,6 +846,11 @@ packages:
     resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
     engines: {node: '>=8'}
     dev: true
+
+  /cbor2@1.1.0:
+    resolution: {integrity: sha512-c9hfTboLrPRv4i9lBftfTv9JtNPHFHrjfcupmGJQNWxedpfYrAZcYOphli/VMp/EobDBYVV+UHGthgoEs4ihJA==}
+    engines: {node: '>=18'}
+    dev: false
 
   /cheerio-select@2.1.0:
     resolution: {integrity: sha512-9v9kG0LvzrlcungtnJtpGNxY+fzECQKhK4EGJX2vByejiMX84MFNQw4UxPJl3bFbTMw+Dfs37XaIkCwTZfLh4g==}
